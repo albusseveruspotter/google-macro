@@ -1,0 +1,18 @@
+{
+  "form_url": "https://docs.google.com/forms/d/e/폼ID/viewform",
+  "target_time": "2026-10-01 10:00:00",
+  "timezone": "Asia/Seoul",
+  "answers": {
+    "entry.123456789": "홍길동",
+    "entry.234567890": "2학년",
+    "entry.345678901": ["선택지A", "선택지B"],
+    "entry.456789012_year": "2026",
+    "entry.456789012_month": "10",
+    "entry.456789012_day": "1"
+  },
+  "send_offset_ms": 0,
+  "retry_until_open_sec": 10,
+  "retry_interval_ms": 300,
+  "resync_before_sec": 40,
+  "sync_probes": 10
+}
