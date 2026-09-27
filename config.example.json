@@ -1,14 +1,11 @@
 {
-  "form_url": "https://docs.google.com/forms/d/e/폼ID/viewform",
+  "form_url": "https://forms.gle/여기에_폼_주소",
   "target_time": "2026-10-01 10:00:00",
   "timezone": "Asia/Seoul",
   "answers": {
-    "entry.123456789": "홍길동",
-    "entry.234567890": "2학년",
-    "entry.345678901": ["선택지A", "선택지B"],
-    "entry.456789012_year": "2026",
-    "entry.456789012_month": "10",
-    "entry.456789012_day": "1"
+    "학번": "2023142177",
+    "성함": "김준석",
+    "농구, 빙구 선택": "농구"
   },
   "send_offset_ms": 0,
   "retry_until_open_sec": 10,

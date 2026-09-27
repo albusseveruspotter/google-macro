@@ -310,6 +310,57 @@ def entry_keys(q: dict, e: dict) -> list[str]:
     return [base]
 
 
+def _norm(s: str) -> str:
+    return re.sub(r"[\s*]+", "", s or "").lower()
+
+
+def find_question(questions: list[dict], title: str) -> dict:
+    """문항 제목으로 찾기: 정확히 일치 → 공백 무시 일치 → 유일한 부분 일치 순."""
+    qs = [q for q in questions if q["entries"]]
+    for cands in (
+        [q for q in qs if q["title"] == title],
+        [q for q in qs if _norm(q["title"]) == _norm(title)],
+        [q for q in qs if _norm(title) in _norm(q["title"])],
+    ):
+        if len(cands) == 1:
+            return cands[0]
+        if len(cands) > 1:
+            raise ValueError(f"'{title}' 와 일치하는 문항이 여러 개입니다: {[q['title'] for q in cands]}")
+    raise ValueError(f"'{title}' 문항을 찾지 못했습니다. inspect 로 문항 제목을 확인하세요.")
+
+
+def resolve_answers(answers: dict, info: FormInfo) -> dict:
+    """answers 의 '문항 제목' 키를 entry 키로 바꾸고, 선택지 값이 맞는지 확인한다."""
+    resolved: dict = {}
+    for key, value in answers.items():
+        if key.startswith(("entry.", "emailAddress")) or key.isdigit():
+            resolved[key if not key.isdigit() else f"entry.{key}"] = value
+            continue
+        if not info.questions:
+            raise ValueError(
+                f"문항 제목('{key}')으로 답을 지정했지만 폼 문항을 읽을 수 없습니다(폼이 닫혀 있음?). "
+                "폼이 열려 있을 때 inspect 로 entry ID 를 확인해 entry 키로 적어 주세요."
+            )
+        q = find_question(info.questions, key)
+        if len(q["entries"]) != 1:
+            raise ValueError(f"'{q['title']}' 는 행이 여러 개인 문항이라 entry 키로 직접 적어야 합니다.")
+        e = q["entries"][0]
+        keys = entry_keys(q, e)
+        if len(keys) > 1:  # 날짜 "2026-10-01" / 시간 "10:30"
+            parts = re.split(r"[-./:]", str(value))
+            if len(parts) != len(keys):
+                raise ValueError(f"'{q['title']}' 값 형식이 잘못됐습니다: {value!r}")
+            resolved.update({k: str(int(v)) for k, v in zip(keys, parts)})
+            continue
+        opts = [o for o in e["options"] if o != "__other_option__"]
+        if opts and q["type"] in (2, 3, 4, 5):
+            for v in value if isinstance(value, list) else [value]:
+                if str(v) not in opts and "__other_option__" not in e["options"]:
+                    raise ValueError(f"'{q['title']}' 에 '{v}' 선택지가 없습니다. 선택지: {opts}")
+        resolved[keys[0]] = value
+    return resolved
+
+
 # ---------------------------------------------------------------------------
 # 제출
 # ---------------------------------------------------------------------------
@@ -488,6 +539,11 @@ def cmd_run(args) -> int:
         info.page_count = int(cfg["page_count"])
     print(f"   제목: {info.title or '(알 수 없음)'} / 페이지 {info.page_count} / "
           f"{'응답 받는 중' if info.accepting else '현재 닫혀 있음'}")
+    try:
+        answers = resolve_answers(answers, info)
+    except ValueError as ex:
+        print(f"   ❌ {ex}")
+        return 2
     missing = []
     for q in info.questions or []:
         for e in q["entries"]:
